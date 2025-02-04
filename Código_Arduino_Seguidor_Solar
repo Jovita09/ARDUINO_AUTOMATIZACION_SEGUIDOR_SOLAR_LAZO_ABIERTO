@@ -1,0 +1,63 @@
+// Definimos los pines
+const int potPin = 26;     // Pin del potenciómetro para control de extensión/contracción
+const int potPinA = 25;    // Pin del potenciómetro A (usado para medir el ángulo)
+const int in1 = 18;        // Pin IN1 del puente H (hacia adelante)
+const int in2 = 19;        // Pin IN2 del puente H (hacia atrás)
+const int enablePin = 14;  // Pin ENA del puente H (control de velocidad)
+
+// Variables
+float potValue = 0;          // Valor leído del potenciómetro
+float potValueA = 0;         // Valor leído del potenciómetro A (para el ángulo)
+float potAngulo = 0;         // Ángulo calculado
+float v;
+float vf;
+
+void setup() {
+  pinMode(potPin, INPUT);
+  pinMode(potPinA, INPUT);
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  pinMode(enablePin, OUTPUT);
+
+  // Configuramos PWM en el pin enablePin
+  ledcSetup(0, 5000, 8);
+  ledcAttachPin(enablePin, 0);
+
+  // Inicializamos la comunicación serial
+  Serial.begin(115200);
+}
+
+void loop() {
+  // Leer valores de los potenciómetros
+  potValue = analogRead(potPin);
+  potValueA = analogRead(potPinA);
+
+  // Calcular el ángulo
+  potAngulo = potValueA * 80 / 845; // Ajusta la fórmula según tu calibración
+
+  // Control del actuador
+  if (potValue > 2047) {
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
+    ledcWrite(0, map(potValue, 2048, 4095, 0, 255));
+    v = map(potValue, 2048, 4095, 0, 255);
+    vf = v/21;
+  } else if (potValue < 1024) {
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+    ledcWrite(0, map(potValue, 0, 1023, 0, 255));
+  } else {
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, LOW);
+    ledcWrite(0, 0);
+  }
+
+  // Enviar datos por el puerto serial
+  Serial.print(potAngulo);
+  Serial.print(",");
+  Serial.println(vf);
+  //Serial.print(",");
+  //Serial.println(vf);
+
+  delay(80); // Ajusta la frecuencia de muestreo si es necesario
+}
